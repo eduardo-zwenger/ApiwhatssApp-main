@@ -1,38 +1,84 @@
-
+const fs = require("fs");
+const myConsole = new console.Console(fs.createWriteStream("./logs.txt"));
+const processMessage = require("../shared/processMessage");
 
 const verifyToken = (req, res) => {
-    var accessToken = "ASDFSDFSD5258FSFASDF";
-    var token = req.query["hub.verify_token"];
-    var challenge = req.query["hub.challenge"];
+    try{
+        var accessToken = "ASDFSDFSD5258FSFASDF";
+        var token = req.query["hub.verify_token"];
+        var challenge = req.query["hub.challenge"];
 
-    if (challenge != null && token != null && token === accessToken) {
-        res.send(challenge);
-    } else {
+        if (challenge != null && token != null && token == accessToken) {
+            res.send(challenge);
+        }else{
+            res.status(400).send();
+        }
+
+        console.log(req);
+    }catch(e){
         res.status(400).send();
     }
-
-    res.send("Hola verifytoken");
 }
 
 
 const receivedMessage = (req, res) => {
-    const message = req.body.message;
+    
+    try{
+        var entry = (req.body["entry"])[0];
+        var changes = (entry["changes"])[0];
+        var value = changes["value"];
+        var messageObjet = value["messages"];
 
-    if (message) {
-        // Procesa el mensaje recibido
-        console.log("Mensaje recibido:", message);
-        // Realiza acciones adicionales según tus necesidades
-        // ...
+        if(typeof messageObjet != "undefined"){
+            var messages = messageObjet[0];
+            
+            var number = messages["from"];
+            number = number.replace("549", "54");
+
+
+            var text = GetTextUser(messages);
+
+            if(text != ""){
+                myConsole.log(text);
+                myConsole.log(number);
+                processMessage.Procces(text, number)
+                
+            }
+            
+        }
+
+
+        res.send("EVENT_RECEIVED");
+
+    }catch(e){
+        myConsole.log(e)
+        res.send("EVENT_RECEIVED");
     }
-
-    res.send("Hola Received");
 }
 
-
-
-
-
-
+function GetTextUser(messages){
+    var text = "";
+    var typeMessage = messages["type"];
+    if(typeMessage == "text"){
+        text = (messages["text"])["body"];
+    }
+    else if(typeMessage == "interactive"){
+        var interactiveObject = messages["interactive"];
+        var typeInteractive = interactiveObject["type"];
+        
+        if(typeInteractive == "button_reply"){
+            text = (interactiveObject["button_reply"])["title"];
+        }
+        else if(typeInteractive == "list_reply"){
+            text = (interactiveObject["list_reply"])["title"];
+        }else{
+            myConsole.log("sin mensaje");
+        }
+    }else{
+        myConsole.log("sin mensaje");
+    }
+    return text;
+}
 
 
 
